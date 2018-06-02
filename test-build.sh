@@ -44,7 +44,16 @@ function build() {
     fatal "Build of ${full_tag} failed!"
   fi
   info "Build of ${full_tag} succeeded."
+}
 
+function test() {
+  local full_tag
+  local full_version
+  full_tag="$1"
+  shift
+  full_version="$1"
+  shift
+  
   info "Testing ${full_tag}"
   export full_tag=${full_tag}
   export full_version=${full_version}
@@ -78,6 +87,7 @@ for version in "${versions[@]}"; do
     fi
 
     build "${version}" "${variant}" "${tag}"
+    test "${full_version}-${variant}" "${full_version}"
   done
 
 done
