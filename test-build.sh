@@ -48,7 +48,7 @@ function build() {
   info "Testing ${full_tag}"
   export full_tag=${full_tag}
   export full_version=${full_version}
-  bats test-image.bat
+  bats test-image.bats
 }
 
 cd "$(cd "${0%/*}" && pwd -P)" || exit
