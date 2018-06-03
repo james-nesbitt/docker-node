@@ -53,7 +53,7 @@ function test() {
   shift
   full_version="$1"
   shift
-  
+
   info "Testing ${full_tag}"
   export full_tag=${full_tag}
   export full_version=${full_version}
