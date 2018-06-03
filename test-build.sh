@@ -15,28 +15,12 @@ IFS=',' read -ra variant_arg <<<"${2:-}"
 default_variant=$(get_config "./" "default_variant")
 
 function build() {
-  local version
-  local tag
-  local variant
   local full_tag
   local path
-  version="$1"
+  full_tag="$1"
   shift
-  variant="$1"
+  path="$1"
   shift
-  tag="$1"
-  shift
-
-  if [ -z "${variant}" ]; then
-    full_tag="${tag}"
-    path="${version}/${variant}"
-  elif [ "${variant}" = "default" ]; then
-    full_tag="${tag}"
-    path="${version}"
-  else
-    full_tag="${tag}-${variant}"
-    path="${version}/${variant}"
-  fi
 
   info "Building ${full_tag}..."
 
@@ -81,13 +65,23 @@ for version in "${versions[@]}"; do
   for variant in "${variants[@]}"; do
     # Skip non-docker directories
     [ -f "${version}/${variant}/Dockerfile" ] || continue
-
-    if [ "${variant}" = "onbuild" ]; then
-      build "${version}" "${default_variant}" "$tag"
+  
+    if [ -z "${variant}" ]; then
+      full_tag="${tag}"
+      path="${version}/${variant}"
+    elif [ "${variant}" = "default" ]; then
+      full_tag="${tag}"
+      path="${version}"
+    elif [ "${variant}" = "onbuild"  ; then
+      full_tag="${tag}"
+      path="${version}/${default_variant}"
+    else
+      full_tag="${tag}-${variant}"
+      path="${version}/${variant}"
     fi
 
-    build "${version}" "${variant}" "${tag}"
-    test "${full_version}-${variant}" "${full_version}"
+    build "${full_tag}" "${path}"
+    test "${full_tag}" "${full_version}"
   done
 
 done
