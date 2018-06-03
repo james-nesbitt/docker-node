@@ -72,7 +72,7 @@ for version in "${versions[@]}"; do
     elif [ "${variant}" = "default" ]; then
       full_tag="${tag}"
       path="${version}"
-    elif [ "${variant}" = "onbuild"  ; then
+    elif [ "${variant}" = "onbuild" ]; then
       full_tag="${tag}"
       path="${version}/${default_variant}"
     else
