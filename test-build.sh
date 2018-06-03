@@ -65,7 +65,7 @@ for version in "${versions[@]}"; do
   for variant in "${variants[@]}"; do
     # Skip non-docker directories
     [ -f "${version}/${variant}/Dockerfile" ] || continue
-  
+
     if [ -z "${variant}" ]; then
       full_tag="${tag}"
       path="${version}/${variant}"
