@@ -1,6 +1,38 @@
 #!/bin/bash
 set -ue
 
+function usage() {
+  cat <<EOF
+
+  Update the node docker images.
+
+  Usage:
+    $0 [-s]
+
+  OPTIONS:
+    -s Security update; skip updating the yarn and alpine versions.
+    -h Show this message
+
+EOF
+}
+
+SKIP=false
+while getopts "sh" opt; do
+  case "${opt}" in
+    s)
+      SKIP=true
+      ;;
+    h)
+      usage
+      exit
+      ;;
+    \?)
+      usage
+      exit
+      ;;
+  esac
+done
+
 . functions.sh
 
 cd "$(cd "${0%/*}" && pwd -P)"
@@ -60,8 +92,10 @@ function update_node_version() {
 
     sed -Ei -e 's/^FROM (.*)/FROM '"$fromprefix"'\1/' "${dockerfile}"
     sed -Ei -e 's/^(ENV NODE_VERSION ).*/\1'"${nodeVersion}"'/' "${dockerfile}"
-    sed -Ei -e 's/^(ENV YARN_VERSION ).*/\1'"${yarnVersion}"'/' "${dockerfile}"
 
+    if [ "${SKIP}" != true ]; then
+      sed -Ei -e 's/^(ENV YARN_VERSION ).*/\1'"${yarnVersion}"'/' "${dockerfile}"
+    fi
     # Only for onbuild variant
     sed -Ei -e 's/^(FROM .*node:)[^-]*(-.*)/\1'"${nodeVersion}"'\2/' "${dockerfile}"
 
@@ -78,7 +112,7 @@ function update_node_version() {
       sed -Ei -e "/${pattern}/d" "${dockerfile}"
     done
 
-    if [ "${variant}" = "alpine" ]; then
+    if [ "${variant}" = "alpine" ] && [ "${SKIP}" != true ]; then
       alpine_version=$(get_config "./" "alpine_version")
       sed -Ei -e "s/(alpine:)0.0/\\1${alpine_version}/" "${dockerfile}"
     fi
