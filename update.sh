@@ -82,7 +82,7 @@ function update_node_version() {
 
   fullVersion="$(curl -sSL --compressed "${baseuri}" | grep '<a href="v'"${version}." | sed -E 's!.*<a href="v([^"/]+)/?".*!\1!' | cut -d'.' -f2,3 | sort -n | tail -1)"
   (
-    cp "${template}" "${dockerfile}"
+    cp "${template}" "${dockerfile}-tmp"
     local fromprefix=""
     if [ "${arch}" != "amd64" ] && [ "${variant}" != "onbuild" ]; then
       fromprefix="${arch}\\/"
@@ -90,14 +90,14 @@ function update_node_version() {
 
     nodeVersion="${version}.${fullVersion:-0}"
 
-    sed -Ei -e 's/^FROM (.*)/FROM '"$fromprefix"'\1/' "${dockerfile}"
-    sed -Ei -e 's/^(ENV NODE_VERSION ).*/\1'"${nodeVersion}"'/' "${dockerfile}"
+    sed -Ei -e 's/^FROM (.*)/FROM '"$fromprefix"'\1/' "${dockerfile}-tmp"
+    sed -Ei -e 's/^(ENV NODE_VERSION ).*/\1'"${nodeVersion}"'/' "${dockerfile}-tmp"
 
     if [ "${SKIP}" != true ]; then
-      sed -Ei -e 's/^(ENV YARN_VERSION ).*/\1'"${yarnVersion}"'/' "${dockerfile}"
+      sed -Ei -e 's/^(ENV YARN_VERSION ).*/\1'"${yarnVersion}"'/' "${dockerfile}-tmp"
     fi
     # Only for onbuild variant
-    sed -Ei -e 's/^(FROM .*node:)[^-]*(-.*)/\1'"${nodeVersion}"'\2/' "${dockerfile}"
+    sed -Ei -e 's/^(FROM .*node:)[^-]*(-.*)/\1'"${nodeVersion}"'\2/' "${dockerfile}-tmp"
 
     # shellcheck disable=SC1004
     new_line=' \\\
@@ -107,20 +107,26 @@ function update_node_version() {
     for key_type in "node" "yarn"; do
       while read -r line; do
         pattern="\"\\$\\{$(echo "${key_type}" | tr '[:lower:]' '[:upper:]')_KEYS\\[@\\]\\}\""
-        sed -Ei -e "s/([ \\t]*)(${pattern})/\\1${line}${new_line}\\1\\2/" "${dockerfile}"
+        sed -Ei -e "s/([ \\t]*)(${pattern})/\\1${line}${new_line}\\1\\2/" "${dockerfile}-tmp"
       done <"keys/${key_type}.keys"
-      sed -Ei -e "/${pattern}/d" "${dockerfile}"
+      sed -Ei -e "/${pattern}/d" "${dockerfile}-tmp"
     done
 
-    if [ "${variant}" = "alpine" ] && [ "${SKIP}" != true ]; then
-      alpine_version=$(get_config "./" "alpine_version")
-      sed -Ei -e "s/(alpine:)0.0/\\1${alpine_version}/" "${dockerfile}"
+    if [ "${variant}" = "alpine" ]; then
+      if [ "${SKIP}" == true ]; then
+        # Get the currently used Alpine version
+        alpine_version=$(grep "FROM" "${dockerfile}" | cut -d':' -f2)
+      else
+        alpine_version=$(get_config "./" "alpine_version")
+      fi
+      sed -Ei -e "s/(alpine:)0.0/\\1${alpine_version}/" "${dockerfile}-tmp"
     fi
 
     # Required for POSIX sed
-    if [ -f "${dockerfile}-e" ]; then
-      rm "${dockerfile}-e"
+    if [ -f "${dockerfile}-tmp-e" ]; then
+      rm "${dockerfile}-tmp-e"
     fi
+    mv -f "${dockerfile}-tmp" "${dockerfile}"
   )
 }
 
